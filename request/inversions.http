@@ -1,0 +1,656 @@
+# =============================================
+# AppRESTInversionsApi - REST Client
+# ITT - Bases de Datos NoSQL - G5B 7pm
+# Docente: Francisco Ibarra Carlos
+# =============================================
+# Uso: Abre este archivo en VS Code con la extension REST Client
+# Haz click en "Send Request" sobre cada peticion
+# Agrega ?DBServer=supabase para usar Supabase
+# =============================================
+
+@api = http://localhost:3020/api/v1
+
+# =============================================
+# 1. USERS
+# =============================================
+
+### GET ALL - Obtener todos los usuarios (MongoDB)
+GET {{api}}/users
+
+###
+### GET ALL - Obtener todos los usuarios (Supabase)
+GET {{api}}/users?DBServer=supabase
+
+###
+### GET BY ID - Obtener usuario por ID
+GET {{api}}/users/REEMPLAZA_CON_ID
+
+###
+### POST - Crear usuario
+POST {{api}}/users
+Content-Type: application/json
+
+{
+  "email": "trader@inversions.com",
+  "full_name": "Trader Demo",
+  "role": "trader",
+  "timezone": "America/Mexico_City",
+  "is_active": true,
+  "preferences": {},
+  "risk_config": {
+    "max_position_size_pct": 5,
+    "max_daily_loss_pct": 2,
+    "default_stop_loss_pct": 1.5,
+    "default_take_profit_pct": 3
+  },
+  "broker_accounts": [
+    {
+      "broker": "alpaca",
+      "account_id": "ACC123",
+      "environment": "paper",
+      "is_active": true
+    }
+  ]
+}
+
+###
+### PUT - Actualizar usuario
+PUT {{api}}/users/REEMPLAZA_CON_ID
+Content-Type: application/json
+
+{
+  "full_name": "Trader Actualizado",
+  "timezone": "UTC"
+}
+
+###
+### DELETE - Eliminar usuario
+DELETE {{api}}/users/REEMPLAZA_CON_ID
+
+
+# =============================================
+# 2. STRATEGIES
+# =============================================
+
+### GET ALL
+GET {{api}}/strategies
+
+###
+### POST - Crear estrategia
+POST {{api}}/strategies
+Content-Type: application/json
+
+{
+  "user_id": "REEMPLAZA_CON_USER_ID",
+  "name": "Momentum Strategy",
+  "description": "Estrategia basada en momentum con RSI y MACD",
+  "min_confidence_threshold": 0.5,
+  "is_active": true
+}
+
+###
+### PUT - Actualizar estrategia
+PUT {{api}}/strategies/REEMPLAZA_CON_ID
+Content-Type: application/json
+
+{
+  "name": "Momentum Strategy v2",
+  "min_confidence_threshold": 0.65
+}
+
+###
+### DELETE
+DELETE {{api}}/strategies/REEMPLAZA_CON_ID
+
+
+# =============================================
+# 3. SIGNAL EVENTS
+# =============================================
+
+### GET ALL
+GET {{api}}/signal-events
+
+###
+### GET - Filtrar por symbol
+GET {{api}}/signal-events?symbol=AAPL
+
+###
+### POST - Crear señal
+POST {{api}}/signal-events
+Content-Type: application/json
+
+{
+  "symbol": "AAPL",
+  "timeframe": "1h",
+  "action": "BUY",
+  "confidence": 0.85,
+  "score": 90,
+  "strategy_id": "REEMPLAZA_CON_STRATEGY_ID",
+  "price_at_signal": 182.50,
+  "status": "active",
+  "reason": "RSI oversold + MACD bullish cross"
+}
+
+###
+### PUT - Actualizar señal
+PUT {{api}}/signal-events/REEMPLAZA_CON_ID
+Content-Type: application/json
+
+{
+  "status": "executed",
+  "confidence": 0.90
+}
+
+###
+### DELETE
+DELETE {{api}}/signal-events/REEMPLAZA_CON_ID
+
+
+# =============================================
+# 4. ORDERS
+# =============================================
+
+### GET ALL
+GET {{api}}/orders
+
+###
+### GET - Filtrar por user_id
+GET {{api}}/orders?user_id=REEMPLAZA_CON_USER_ID
+
+###
+### POST - Crear orden
+POST {{api}}/orders
+Content-Type: application/json
+
+{
+  "user_id": "REEMPLAZA_CON_USER_ID",
+  "signal_id": "REEMPLAZA_CON_SIGNAL_ID",
+  "strategy_id": "REEMPLAZA_CON_STRATEGY_ID",
+  "symbol": "AAPL",
+  "side": "BUY",
+  "quantity": 10,
+  "order_type": "MARKET",
+  "status": "FILLED",
+  "filled_qty": 10,
+  "filled_avg_price": 182.50
+}
+
+###
+### PUT - Actualizar orden
+PUT {{api}}/orders/REEMPLAZA_CON_ID
+Content-Type: application/json
+
+{
+  "status": "FILLED",
+  "filled_qty": 10,
+  "filled_avg_price": 183.00
+}
+
+###
+### DELETE
+DELETE {{api}}/orders/REEMPLAZA_CON_ID
+
+
+# =============================================
+# 5. POSITIONS
+# =============================================
+
+### GET ALL
+GET {{api}}/positions
+
+###
+### POST - Crear posición
+POST {{api}}/positions
+Content-Type: application/json
+
+{
+  "user_id": "REEMPLAZA_CON_USER_ID",
+  "symbol": "AAPL",
+  "side": "LONG",
+  "quantity": 10,
+  "entry_price": 182.50,
+  "current_price": 185.00,
+  "stop_loss": 178.00,
+  "take_profit": 192.00,
+  "is_open": true
+}
+
+###
+### PUT - Actualizar posición
+PUT {{api}}/positions/REEMPLAZA_CON_ID
+Content-Type: application/json
+
+{
+  "current_price": 187.30,
+  "unrealized_pnl": 48.00,
+  "unrealized_pnl_pct": 2.63
+}
+
+###
+### DELETE
+DELETE {{api}}/positions/REEMPLAZA_CON_ID
+
+
+# =============================================
+# 6. CLOSED TRADES
+# =============================================
+
+### GET ALL
+GET {{api}}/closed-trades
+
+###
+### POST - Registrar trade cerrado
+POST {{api}}/closed-trades
+Content-Type: application/json
+
+{
+  "user_id": "REEMPLAZA_CON_USER_ID",
+  "symbol": "AAPL",
+  "side": "BUY",
+  "quantity": 10,
+  "entry_price": 182.50,
+  "exit_price": 190.00,
+  "pnl": 75.00,
+  "pnl_pct": 4.11,
+  "entry_time": "2026-04-20T09:30:00Z",
+  "exit_time": "2026-04-24T15:45:00Z"
+}
+
+###
+### PUT - Actualizar trade
+PUT {{api}}/closed-trades/REEMPLAZA_CON_ID
+Content-Type: application/json
+
+{
+  "pnl": 80.00,
+  "pnl_pct": 4.38
+}
+
+###
+### DELETE
+DELETE {{api}}/closed-trades/REEMPLAZA_CON_ID
+
+
+# =============================================
+# 7. ALERT LOG
+# =============================================
+
+### GET ALL
+GET {{api}}/alert-log
+
+###
+### GET - Filtrar por user_id
+GET {{api}}/alert-log?user_id=REEMPLAZA_CON_USER_ID
+
+###
+### POST - Crear alerta
+POST {{api}}/alert-log
+Content-Type: application/json
+
+{
+  "user_id": "REEMPLAZA_CON_USER_ID",
+  "alert_type": "SIGNAL_HIGH_CONFIDENCE",
+  "symbol": "AAPL",
+  "message": "Señal de compra detectada en AAPL con confianza 85%",
+  "channel": "ui"
+}
+
+###
+### PUT - Marcar alerta como leída
+PUT {{api}}/alert-log/REEMPLAZA_CON_ID
+Content-Type: application/json
+
+{
+  "acknowledged": true,
+  "acknowledged_at": "2026-04-26T10:00:00Z"
+}
+
+###
+### DELETE
+DELETE {{api}}/alert-log/REEMPLAZA_CON_ID
+
+
+# =============================================
+# 8. NEWS
+# =============================================
+
+### GET ALL
+GET {{api}}/news
+
+###
+### GET - Filtrar por symbol
+GET {{api}}/news?symbol=AAPL
+
+###
+### POST - Crear noticia
+POST {{api}}/news
+Content-Type: application/json
+
+{
+  "symbol": "AAPL",
+  "headline": "Apple supera expectativas de ganancias en Q1 2026",
+  "summary": "EPS de $6.43 superando el consenso de $5.90",
+  "sentiment": "bullish",
+  "relevance_score": 0.95,
+  "source": "Reuters",
+  "published_at": "2026-04-25T14:30:00Z"
+}
+
+###
+### PUT - Actualizar noticia
+PUT {{api}}/news/REEMPLAZA_CON_ID
+Content-Type: application/json
+
+{
+  "sentiment": "bullish",
+  "relevance_score": 0.98
+}
+
+###
+### DELETE
+DELETE {{api}}/news/REEMPLAZA_CON_ID
+
+
+# =============================================
+# 9. EVENT CALENDAR
+# =============================================
+
+### GET ALL
+GET {{api}}/event-calendar
+
+###
+### GET - Filtrar por symbol
+GET {{api}}/event-calendar?symbol=AAPL
+
+###
+### POST - Crear evento
+POST {{api}}/event-calendar
+Content-Type: application/json
+
+{
+  "symbol": "AAPL",
+  "event_type": "earnings",
+  "title": "AAPL Q2 2026 Earnings",
+  "description": "Reporte trimestral Q2 2026",
+  "expected_impact": "high",
+  "event_date": "2026-07-25T00:00:00Z",
+  "is_confirmed": false,
+  "source": "SEC"
+}
+
+###
+### PUT - Actualizar evento
+PUT {{api}}/event-calendar/REEMPLAZA_CON_ID
+Content-Type: application/json
+
+{
+  "is_confirmed": true,
+  "expected_impact": "high"
+}
+
+###
+### DELETE
+DELETE {{api}}/event-calendar/REEMPLAZA_CON_ID
+
+
+# =============================================
+# 10. FUNDAMENTALS
+# =============================================
+
+### GET ALL
+GET {{api}}/fundamentals
+
+###
+### GET - Filtrar por symbol
+GET {{api}}/fundamentals?symbol=AAPL
+
+###
+### POST - Crear fundamental
+POST {{api}}/fundamentals
+Content-Type: application/json
+
+{
+  "symbol": "AAPL",
+  "revenue_growth": 0.12,
+  "eps": 6.43,
+  "eps_surprise": 0.08,
+  "pe_ratio": 28.5,
+  "market_cap": 2800000000000,
+  "analyst_rating": "BUY",
+  "source": "manual"
+}
+
+###
+### PUT - Actualizar fundamental
+PUT {{api}}/fundamentals/REEMPLAZA_CON_ID
+Content-Type: application/json
+
+{
+  "eps": 6.80,
+  "analyst_rating": "STRONG BUY"
+}
+
+###
+### DELETE
+DELETE {{api}}/fundamentals/REEMPLAZA_CON_ID
+
+
+# =============================================
+# 11. OPTION CHAIN
+# =============================================
+
+### GET ALL
+GET {{api}}/option-chain
+
+###
+### GET - Filtrar por symbol
+GET {{api}}/option-chain?symbol=AAPL
+
+###
+### POST - Crear contrato de opciones
+POST {{api}}/option-chain
+Content-Type: application/json
+
+{
+  "symbol": "AAPL",
+  "strike": 185.00,
+  "option_type": "CALL",
+  "implied_volatility": 0.25,
+  "bid": 3.20,
+  "ask": 3.40,
+  "volume": 1500,
+  "open_interest": 8000,
+  "dte": 21,
+  "source": "ALPACA"
+}
+
+###
+### PUT - Actualizar contrato
+PUT {{api}}/option-chain/REEMPLAZA_CON_ID
+Content-Type: application/json
+
+{
+  "implied_volatility": 0.28,
+  "bid": 3.50,
+  "ask": 3.70
+}
+
+###
+### DELETE
+DELETE {{api}}/option-chain/REEMPLAZA_CON_ID
+
+
+# =============================================
+# 12. BROKER ACCOUNTS
+# =============================================
+
+### GET ALL
+GET {{api}}/broker-accounts
+
+###
+### GET - Filtrar por user_id
+GET {{api}}/broker-accounts?user_id=REEMPLAZA_CON_USER_ID
+
+###
+### GET BY ID
+GET {{api}}/broker-accounts/REEMPLAZA_CON_ID
+
+###
+### POST - Crear cuenta de broker
+POST {{api}}/broker-accounts
+Content-Type: application/json
+
+{
+  "user_id": "REEMPLAZA_CON_USER_ID",
+  "broker": "alpaca",
+  "account_id": "ACC123",
+  "environment": "paper",
+  "is_active": true,
+  "notes": "Cuenta de prueba Alpaca"
+}
+
+###
+### PUT - Actualizar cuenta
+PUT {{api}}/broker-accounts/REEMPLAZA_CON_ID
+Content-Type: application/json
+
+{
+  "environment": "live",
+  "is_active": true
+}
+
+###
+### DELETE
+DELETE {{api}}/broker-accounts/REEMPLAZA_CON_ID
+
+
+# =============================================
+# 13. RISK CONFIG
+# =============================================
+
+### GET ALL
+GET {{api}}/risk-config
+
+###
+### GET - Filtrar por user_id
+GET {{api}}/risk-config?user_id=REEMPLAZA_CON_USER_ID
+
+###
+### GET BY ID
+GET {{api}}/risk-config/REEMPLAZA_CON_ID
+
+###
+### POST - Crear configuración de riesgo
+POST {{api}}/risk-config
+Content-Type: application/json
+
+{
+  "user_id": "REEMPLAZA_CON_USER_ID",
+  "max_position_size_pct": 5.00,
+  "max_daily_loss_pct": 2.00,
+  "default_stop_loss_pct": 1.50,
+  "default_take_profit_pct": 3.00,
+  "max_concurrent_positions": 5,
+  "max_iv_percentile": 80,
+  "preferred_dte_min": 7,
+  "preferred_dte_max": 45,
+  "max_option_premium_pct": 2.00
+}
+
+###
+### PUT - Actualizar configuración de riesgo
+PUT {{api}}/risk-config/REEMPLAZA_CON_ID
+Content-Type: application/json
+
+{
+  "max_position_size_pct": 8.00,
+  "max_daily_loss_pct": 3.00,
+  "max_concurrent_positions": 8
+}
+
+###
+### DELETE
+DELETE {{api}}/risk-config/REEMPLAZA_CON_ID
+
+
+# =============================================
+# 12. BROKER ACCOUNTS
+# =============================================
+
+### GET ALL
+GET {{api}}/broker-accounts
+
+###
+### GET - Filtrar por user_id
+GET {{api}}/broker-accounts?user_id=REEMPLAZA_CON_USER_ID
+
+###
+### POST - Crear cuenta de broker (MongoDB)
+POST {{api}}/broker-accounts
+Content-Type: application/json
+
+{
+  "user_id": "REEMPLAZA_CON_USER_ID",
+  "broker": "alpaca",
+  "account_id": "ACC123",
+  "environment": "paper",
+  "is_active": true
+}
+
+###
+### PUT - Actualizar cuenta de broker
+PUT {{api}}/broker-accounts/REEMPLAZA_CON_ID
+Content-Type: application/json
+
+{
+  "environment": "live",
+  "is_active": true
+}
+
+###
+### DELETE
+DELETE {{api}}/broker-accounts/REEMPLAZA_CON_ID
+
+
+# =============================================
+# 13. RISK CONFIG
+# =============================================
+
+### GET ALL
+GET {{api}}/risk-config
+
+###
+### GET - Filtrar por user_id
+GET {{api}}/risk-config?user_id=REEMPLAZA_CON_USER_ID
+
+###
+### POST - Crear configuracion de riesgo
+POST {{api}}/risk-config
+Content-Type: application/json
+
+{
+  "user_id": "REEMPLAZA_CON_USER_ID",
+  "max_position_size_pct": 5.00,
+  "max_daily_loss_pct": 2.00,
+  "default_stop_loss_pct": 1.50,
+  "default_take_profit_pct": 3.00,
+  "max_concurrent_positions": 5,
+  "max_iv_percentile": 80,
+  "preferred_dte_min": 7,
+  "preferred_dte_max": 45,
+  "max_option_premium_pct": 2.00
+}
+
+###
+### PUT - Actualizar configuracion de riesgo
+PUT {{api}}/risk-config/REEMPLAZA_CON_ID
+Content-Type: application/json
+
+{
+  "max_position_size_pct": 7.00,
+  "max_daily_loss_pct": 3.00
+}
+
+###
+### DELETE
+DELETE {{api}}/risk-config/REEMPLAZA_CON_ID
