@@ -23,4 +23,26 @@ export default {
   SUPABASE_URL:   process.env.SUPABASE_URL  || '',
   SUPABASE_KEY:   process.env.SUPABASE_KEY  || '',
   SUPABASE_SCHEMA:process.env.SUPABASE_SCHEMA || 'public',
+
+  // =============================================
+  // Groq AI Configuration
+  // =============================================
+  GROQ_API_KEY:   process.env.GROQ_API_KEY || '',
+  GROQ_MODEL:     process.env.GROQ_MODEL || 'mixtral-8x7b-32768',
+  GROQ_TEMPERATURE: parseFloat(process.env.GROQ_TEMPERATURE) || 0.1,
+  GROQ_MAX_TOKENS: parseInt(process.env.GROQ_MAX_TOKENS) || 1024,
+
+  // =============================================
+  // Alpaca Markets Configuration
+  // =============================================
+  ALPACA_API_KEY:   process.env.ALPACA_API_KEY || '',
+  ALPACA_SECRET_KEY: process.env.ALPACA_SECRET_KEY || '',
+  ALPACA_BASE_URL:  process.env.ALPACA_BASE_URL || 'https://paper-api.alpaca.markets',
+  ALPACA_CACHE_MINUTES: parseInt(process.env.ALPACA_CACHE_MINUTES) || 60,
+
+  // =============================================
+  // AI Query Engine Configuration
+  // =============================================
+  AI_RATE_LIMIT: parseInt(process.env.AI_RATE_LIMIT) || 100,
+  AI_CACHE_TTL: parseInt(process.env.AI_CACHE_TTL) || 3600,
 };

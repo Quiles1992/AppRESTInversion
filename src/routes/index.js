@@ -11,6 +11,7 @@ import newsRoutes          from './news.routes';
 import eventCalendarRoutes from './event-calendar.routes';
 import fundamentalRoutes   from './fundamentals.routes';
 import optionChainRoutes   from './option-chain.routes';
+import aiQueryRoutes       from './ai-query.routes';
 
 const router = Router();
 
@@ -25,5 +26,6 @@ router.use('/news',           newsRoutes);
 router.use('/event-calendar', eventCalendarRoutes);
 router.use('/fundamentals',   fundamentalRoutes);
 router.use('/option-chain',   optionChainRoutes);
+router.use('/ai-query',       aiQueryRoutes);
 
 export default router;

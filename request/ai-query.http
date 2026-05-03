@@ -1,0 +1,152 @@
+### AI Query Engine - Ejemplos de Requests
+### Descripción: Consultas en lenguaje natural con Groq + Alpaca
+
+@baseUrl = http://localhost:3020/api/v1
+
+###############################################
+# 1. QUERY: Empresas con volatilidad baja
+###############################################
+POST {{baseUrl}}/ai-query
+Content-Type: application/json
+
+{
+  "query": "Dame empresas con volatilidad baja",
+  "dbServer": "mongodb",
+  "includeAlpaca": true,
+  "includeCharts": false
+}
+
+###############################################
+# 2. QUERY: Top 10 con más plusvalía (S&P500)
+###############################################
+POST {{baseUrl}}/ai-query
+Content-Type: application/json
+
+{
+  "query": "Grafícame las 10 empresas con más plusvalía del S&P500",
+  "dbServer": "mongodb",
+  "includeCharts": true
+}
+
+###############################################
+# 3. QUERY: Empresas con P/E bajo
+###############################################
+POST {{baseUrl}}/ai-query
+Content-Type: application/json
+
+{
+  "query": "Empresas con P/E ratio menor a 15",
+  "dbServer": "supabase",
+  "includeAlpaca": false,
+  "includeCharts": false
+}
+
+###############################################
+# 4. QUERY: Promedio de revenue growth
+###############################################
+POST {{baseUrl}}/ai-query
+Content-Type: application/json
+
+{
+  "query": "¿Cuál es el promedio de revenue growth?",
+  "dbServer": "mongodb",
+  "includeCharts": false
+}
+
+###############################################
+# 5. QUERY: Posiciones abiertas con ganancia
+###############################################
+POST {{baseUrl}}/ai-query
+Content-Type: application/json
+
+{
+  "query": "Mis posiciones abiertas que tienen ganancia",
+  "dbServer": "mongodb",
+  "includeCharts": true,
+  "generateNLSummary": true
+}
+
+###############################################
+# 6. PREVIEW: Ver interpretación sin ejecutar
+###############################################
+POST {{baseUrl}}/ai-query/preview
+Content-Type: application/json
+
+{
+  "query": "Dame los top 5 stocks con mayor volatilidad"
+}
+
+###############################################
+# 7. PREVIEW: Query ambigua
+###############################################
+POST {{baseUrl}}/ai-query/preview
+Content-Type: application/json
+
+{
+  "query": "Empresas ganadoras hoy"
+}
+
+###############################################
+# 8. SCHEMA: Obtener schema disponible
+###############################################
+GET {{baseUrl}}/ai-query/schema
+
+###############################################
+# 9. QUERY: Noticias recientes
+###############################################
+POST {{baseUrl}}/ai-query
+Content-Type: application/json
+
+{
+  "query": "Noticias de AAPL del último mes",
+  "dbServer": "mongodb"
+}
+
+###############################################
+# 10. QUERY: Análisis de opciones
+###############################################
+POST {{baseUrl}}/ai-query
+Content-Type: application/json
+
+{
+  "query": "Opciones call de AAPL con volatilidad implícita alta",
+  "dbServer": "mongodb",
+  "includeCharts": true
+}
+
+###############################################
+# 11. QUERY: Trades históricos
+###############################################
+POST {{baseUrl}}/ai-query
+Content-Type: application/json
+
+{
+  "query": "Mis trades ganadores del último trimestre",
+  "dbServer": "mongodb",
+  "includeCharts": true
+}
+
+###############################################
+# 12. QUERY: Comparación de estrategias
+###############################################
+POST {{baseUrl}}/ai-query
+Content-Type: application/json
+
+{
+  "query": "Estrategias activas ordenadas por retorno",
+  "dbServer": "mongodb",
+  "includeCharts": false
+}
+
+###############################################
+# NOTAS:
+###############################################
+# - Asegúrate de tener GROQ_API_KEY en .env
+# - Asegúrate de tener ALPACA_API_KEY y ALPACA_SECRET_KEY en .env
+# - Usa "dbServer": "mongodb" para MongoDB
+# - Usa "dbServer": "supabase" para Supabase
+# - "includeAlpaca": true → Enriquece con precios/volatilidad de Alpaca (más lento)
+# - "includeCharts": true → Genera gráficas Chart.js
+# - "generateNLSummary": true → Genera resumen en lenguaje natural (muy lento)
+# - POST /ai-query/preview → Valida sin ejecutar
+# - GET /ai-query/schema → Ve el schema disponible
