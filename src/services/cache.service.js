@@ -1,47 +1,56 @@
-import Redis from 'redis';
+import { createClient } from 'redis';
 import config from '../config/config.js';
 
 /**
- * Cache Service
- * Gestiona caché en Redis para reducir llamadas a Alpaca
- * Sin Redis, usa memoria local (simula con Map)
+ * Cache Service - Optimizado para Redis Cloud
  */
 
 let redisClient = null;
 const localCache = new Map();
 
-// Intentar conectar a Redis
+// Intentar conectar a Redis con esteroides
 const initRedis = async () => {
   try {
     if (process.env.REDIS_URL) {
-      redisClient = Redis.createClient({
+      // Usamos createClient directamente de la librería para evitar problemas de compatibilidad
+      redisClient = createClient({
         url: process.env.REDIS_URL,
+        // Quitamos tls: true porque causa el error de mismatch
+        socket: {
+          reconnectStrategy: (retries) => {
+            if (retries > 5) return new Error('Reintentos de Redis agotados');
+            return Math.min(retries * 100, 3000);
+          }
+        }
       });
-      
+
       redisClient.on('error', (err) => {
-        console.warn('⚠️ Redis connection error, falling back to local cache:', err.message);
-        redisClient = null;
+        // Si hay error, marcamos como null para que el resto del código use el Map local
+        if (redisClient) {
+            console.warn('⚠️ Redis Cloud connection error, falling back to local cache:', err.message);
+            redisClient = null;
+        }
       });
-      
+
       await redisClient.connect();
-      console.log('✅ Redis connected');
+      console.log('✅ Redis Cloud conectado exitosamente');
+    } else {
+      console.warn('⚠️ No se encontró REDIS_URL en el .env');
     }
   } catch (error) {
-    console.warn('⚠️ Redis not available, using local in-memory cache');
+    console.warn('⚠️ Falló la conexión a Redis, usando memoria local:', error.message);
     redisClient = null;
   }
 };
 
-initRedis().catch(console.error);
+initRedis().catch(err => console.error("Error en inicialización:", err));
 
 /**
  * Obtiene valor del cache
- * @param {string} key - Clave de cache
- * @returns {any} - Valor cacheado o null
  */
 export const getCacheValue = async (key) => {
   try {
-    if (redisClient) {
+    if (redisClient && redisClient.isOpen) {
       const value = await redisClient.get(key);
       return value ? JSON.parse(value) : null;
     } else {
@@ -60,14 +69,14 @@ export const getCacheValue = async (key) => {
 
 /**
  * Guarda valor en cache
- * @param {string} key - Clave de cache
- * @param {any} value - Valor a cachear
- * @param {number} ttlSeconds - Time to live en segundos (default: 3600 = 1 hora)
  */
 export const setCacheValue = async (key, value, ttlSeconds = 3600) => {
   try {
-    if (redisClient) {
-      await redisClient.setEx(key, ttlSeconds, JSON.stringify(value));
+    if (redisClient && redisClient.isOpen) {
+      // Usamos set con opciones modernas
+      await redisClient.set(key, JSON.stringify(value), {
+        EX: ttlSeconds
+      });
     } else {
       localCache.set(key, {
         value,
@@ -81,11 +90,10 @@ export const setCacheValue = async (key, value, ttlSeconds = 3600) => {
 
 /**
  * Elimina valor del cache
- * @param {string} key - Clave de cache
  */
 export const deleteCacheValue = async (key) => {
   try {
-    if (redisClient) {
+    if (redisClient && redisClient.isOpen) {
       await redisClient.del(key);
     } else {
       localCache.delete(key);
@@ -96,11 +104,11 @@ export const deleteCacheValue = async (key) => {
 };
 
 /**
- * Limpia todo el cache (CUIDADO: destructivo)
+ * Limpia todo el cache
  */
 export const flushCache = async () => {
   try {
-    if (redisClient) {
+    if (redisClient && redisClient.isOpen) {
       await redisClient.flushDb();
       console.log('✅ Redis cache flushed');
     } else {
@@ -112,44 +120,17 @@ export const flushCache = async () => {
   }
 };
 
-/**
- * Genera una clave de cache estandarizada
- * Formato: "symbol:timeframe:type:date"
- * @param {string} symbol - Símbolo (ej: "AAPL")
- * @param {string} timeframe - Marco temporal (ej: "1d", "1h")
- * @param {string} type - Tipo de dato (ej: "bars", "quote", "volatility")
- * @returns {string} - Clave formateada
- */
 export const generateCacheKey = (symbol, timeframe = 'current', type = 'quote') => {
   const date = new Date().toISOString().split('T')[0];
   return `alpaca:${symbol.toUpperCase()}:${timeframe}:${type}:${date}`;
 };
 
-/**
- * Obtiene cacheado o ejecuta función
- * Patrón: cache-aside (si no existe, ejecuta y cachea)
- * @param {string} key - Clave de cache
- * @param {Function} fetchFn - Función que obtiene el dato
- * @param {number} ttl - TTL en segundos
- * @returns {any} - Dato cacheado o fresco
- */
 export const cacheOrFetch = async (key, fetchFn, ttl = 3600) => {
-  // Intentar obtener del cache
   const cached = await getCacheValue(key);
-  if (cached) {
-    console.log(`✅ Cache HIT: ${key}`);
-    return cached;
-  }
+  if (cached) return cached;
 
-  // No está en cache, ejecutar función
-  console.log(`❌ Cache MISS: ${key}, fetching...`);
   const data = await fetchFn();
-
-  // Guardar en cache
-  if (data) {
-    await setCacheValue(key, data, ttl);
-  }
-
+  if (data) await setCacheValue(key, data, ttl);
   return data;
 };
 

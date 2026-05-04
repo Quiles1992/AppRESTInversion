@@ -9,14 +9,49 @@ import config from '../config/config';
 
 /**
  * Construye query para MongoDB
- * @param {object} parsedQuery - {entity, filters, fields, sort, limit, aggregation}
+ * @param {object} parsedQuery - {entity, filters, fields, sort, limit, aggregation, fulltext, groupBy}
  * @param {Model} mongooseModel - Mongoose model
  * @returns {object} - Configuración de query
  */
 export const buildMongoQuery = (parsedQuery, mongooseModel) => {
-  const { filters = {}, fields = [], sort = '-created_at', limit = 50, aggregation = null } = parsedQuery;
+  const { 
+    filters = {}, 
+    fields = [], 
+    sort = '-created_at', 
+    limit = 50, 
+    aggregation = null,
+    fulltext = null,
+    groupBy = null,
+  } = parsedQuery;
 
+  // ============================================
+  // AGREGACIONES AVANZADAS (pipeline)
+  // ============================================
+  if (groupBy || aggregation?.advanced) {
+    return buildAggregationPipeline(mongooseModel, {
+      filters,
+      fields,
+      sort,
+      limit,
+      aggregation,
+      groupBy,
+      fulltext,
+    });
+  }
+
+  // ============================================
+  // QUERIES SIMPLES
+  // ============================================
   let query = mongooseModel.find(filters);
+
+  // Búsqueda full-text
+  if (fulltext) {
+    // Crear índice de texto si no existe
+    if (mongooseModel.schema.indexes().every(idx => !idx[0].$text)) {
+      mongooseModel.collection.createIndex({ headline: 'text', summary: 'text' });
+    }
+    query = mongooseModel.find({ $text: { $search: fulltext } });
+  }
 
   // Seleccionar campos
   if (fields.length > 0) {
@@ -34,6 +69,87 @@ export const buildMongoQuery = (parsedQuery, mongooseModel) => {
   }
 
   return { query, aggregation };
+};
+
+/**
+ * Construye pipeline de agregación para MongoDB
+ * @param {Model} mongooseModel - Mongoose model
+ * @param {object} options - {filters, fields, sort, limit, aggregation, groupBy, fulltext}
+ * @returns {object} - {query: aggregationPipeline, isAggregation: true}
+ */
+const buildAggregationPipeline = (mongooseModel, options) => {
+  const { filters = {}, fields = [], sort = '-_id', limit = 50, aggregation = null, groupBy = null, fulltext = null } = options;
+
+  const pipeline = [];
+
+  // 1. Match (filtros)
+  if (Object.keys(filters).length > 0) {
+    pipeline.push({ $match: filters });
+  }
+
+  // 2. Full-text search
+  if (fulltext) {
+    pipeline.push({ 
+      $match: { 
+        $text: { $search: fulltext } 
+      } 
+    });
+  }
+
+  // 3. Group (si hay groupBy)
+  if (groupBy) {
+    const groupStage = {
+      $group: {
+        _id: `$${groupBy.field}`,
+      },
+    };
+
+    // Agregar funciones de agregación
+    if (aggregation?.type === 'avg') {
+      groupStage.$group[`avg_${aggregation.field}`] = { $avg: `$${aggregation.field}` };
+    }
+    if (aggregation?.type === 'sum') {
+      groupStage.$group[`sum_${aggregation.field}`] = { $sum: `$${aggregation.field}` };
+    }
+    if (aggregation?.type === 'max') {
+      groupStage.$group[`max_${aggregation.field}`] = { $max: `$${aggregation.field}` };
+    }
+    if (aggregation?.type === 'min') {
+      groupStage.$group[`min_${aggregation.field}`] = { $min: `$${aggregation.field}` };
+    }
+    groupStage.$group.count = { $sum: 1 };
+
+    pipeline.push(groupStage);
+  }
+
+  // 4. Sort
+  const sortObj = {};
+  if (sort.startsWith('-')) {
+    sortObj[sort.slice(1)] = -1;
+  } else {
+    sortObj[sort] = 1;
+  }
+  pipeline.push({ $sort: sortObj });
+
+  // 5. Limit
+  if (limit && limit > 0) {
+    pipeline.push({ $limit: Math.min(limit, 500) });
+  }
+
+  // 6. Project (campos a retornar)
+  if (fields.length > 0) {
+    const projectObj = { _id: 1 };
+    fields.forEach(field => {
+      projectObj[field] = 1;
+    });
+    pipeline.push({ $project: projectObj });
+  }
+
+  return {
+    query: mongooseModel.aggregate(pipeline),
+    aggregation,
+    isAggregation: true,
+  };
 };
 
 /**
@@ -89,11 +205,18 @@ export const buildSupabaseQuery = (tableName, parsedQuery) => {
 /**
  * Ejecuta query en MongoDB
  */
-export const executeMongoQuery = async (mongoQuery, aggregation = null) => {
-  let data = await mongoQuery.exec();
+export const executeMongoQuery = async (mongoQuery, aggregation = null, isAggregation = false) => {
+  let data;
 
-  // Aplicar agregaciones post-query
-  if (aggregation) {
+  // Si es agregación (pipeline), ejecutar diferente
+  if (isAggregation) {
+    data = await mongoQuery.exec(); // Para agregaciones
+  } else {
+    data = await mongoQuery.exec(); // Para queries simples
+  }
+
+  // Aplicar agregaciones post-query (solo si no es pipeline)
+  if (aggregation && !isAggregation) {
     data = applyAggregation(data, aggregation);
   }
 
@@ -120,22 +243,26 @@ const applyAggregation = (data, aggregation) => {
   if (!aggregation || !data || data.length === 0) return data;
 
   const { type, field } = aggregation;
-  const values = data.map(d => d[field]).filter(v => v !== undefined && v !== null);
+  const values = data.map(d => d[field]).filter(v => v !== undefined && v !== null && typeof v === 'number');
+
+  if (values.length === 0) return data;
 
   switch (type) {
     case 'avg':
       return {
         type: 'avg',
         field,
-        value: values.reduce((a, b) => a + b, 0) / values.length,
+        value: parseFloat((values.reduce((a, b) => a + b, 0) / values.length).toFixed(4)),
         count: values.length,
+        data,
       };
     case 'sum':
       return {
         type: 'sum',
         field,
-        value: values.reduce((a, b) => a + b, 0),
+        value: parseFloat(values.reduce((a, b) => a + b, 0).toFixed(4)),
         count: values.length,
+        data,
       };
     case 'max':
       return {
@@ -143,6 +270,7 @@ const applyAggregation = (data, aggregation) => {
         field,
         value: Math.max(...values),
         count: values.length,
+        data,
       };
     case 'min':
       return {
@@ -150,11 +278,25 @@ const applyAggregation = (data, aggregation) => {
         field,
         value: Math.min(...values),
         count: values.length,
+        data,
       };
     case 'count':
       return {
         type: 'count',
         value: values.length,
+        data,
+      };
+    case 'stddev':
+      const mean = values.reduce((a, b) => a + b, 0) / values.length;
+      const variance = values.reduce((a, v) => a + Math.pow(v - mean, 2), 0) / values.length;
+      const stdDev = Math.sqrt(variance);
+      return {
+        type: 'stddev',
+        field,
+        value: parseFloat(stdDev.toFixed(4)),
+        count: values.length,
+        mean: parseFloat(mean.toFixed(4)),
+        data,
       };
     default:
       return data;

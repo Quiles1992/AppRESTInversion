@@ -21,9 +21,6 @@ const getGroqClient = () => {
 
 /**
  * Interpreta una query en lenguaje natural
- * @param {string} query - Query del usuario: "Dame empresas con volatilidad baja"
- * @param {string} schemaContext - Schema de BD disponible (JSON stringified)
- * @returns {object} - {entity, filters, fields, sort, limit, aggregation}
  */
 export const interpretNLQuery = async (query, schemaContext) => {
   const groq = getGroqClient();
@@ -53,20 +50,25 @@ Response format MUST be:
 }`;
 
   try {
-    const message = await groq.messages.create({
-      model: config.GROQ_MODEL,
-      max_tokens: config.GROQ_MAX_TOKENS,
-      temperature: config.GROQ_TEMPERATURE,
+    // AQUI ESTABA EL ERROR: Cambiado al formato correcto de Groq/OpenAI
+    const chatCompletion = await groq.chat.completions.create({
+      model: config.GROQ_MODEL || 'llama3-8b-8192', // Fallback por si falta en .env
+      max_tokens: config.GROQ_MAX_TOKENS ? parseInt(config.GROQ_MAX_TOKENS) : 1024,
+      temperature: config.GROQ_TEMPERATURE ? parseFloat(config.GROQ_TEMPERATURE) : 0,
       messages: [
+        {
+          role: 'system',
+          content: systemPrompt,
+        },
         {
           role: 'user',
           content: `Convert this query to structured JSON:\n"${query}"`,
         },
       ],
-      system: systemPrompt,
     });
 
-    const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
+    // AQUI ESTABA EL OTRO ERROR: Extrayendo la respuesta al estilo Groq
+    const responseText = chatCompletion.choices[0]?.message?.content || '';
     
     // Limpiar respuesta (a veces Groq agrega markdown)
     const cleanedText = responseText
@@ -84,16 +86,14 @@ Response format MUST be:
 
 /**
  * Genera un resumen analítico de datos
- * @param {array} data - Array de resultados
- * @param {string} query - Query original del usuario
- * @returns {string} - Resumen en lenguaje natural
  */
 export const generateSummary = async (data, query) => {
   const groq = getGroqClient();
 
   try {
-    const message = await groq.messages.create({
-      model: config.GROQ_MODEL,
+    // También arreglado aquí para generar el resumen
+    const chatCompletion = await groq.chat.completions.create({
+      model: config.GROQ_MODEL || 'llama3-8b-8192',
       max_tokens: 500,
       temperature: 0.3,
       messages: [
@@ -106,7 +106,7 @@ export const generateSummary = async (data, query) => {
       ],
     });
 
-    return message.content[0].type === 'text' ? message.content[0].text : '';
+    return chatCompletion.choices[0]?.message?.content || '';
   } catch (error) {
     console.error('❌ Groq summary error:', error.message);
     return 'Summary generation failed';
@@ -115,12 +115,8 @@ export const generateSummary = async (data, query) => {
 
 /**
  * Valida si una query es segura (anti-injection)
- * @param {object} parsedQuery - Query parseada por Groq
- * @param {array} allowedFields - Campos permitidos por entidad
- * @returns {boolean}
  */
 export const validateQuerySafety = (parsedQuery, allowedFields = []) => {
-  // Validar que los campos están en whitelist
   if (allowedFields.length > 0) {
     const queryFields = [
       ...Object.keys(parsedQuery.filters || {}),
@@ -134,7 +130,6 @@ export const validateQuerySafety = (parsedQuery, allowedFields = []) => {
     }
   }
 
-  // No permitir comandos peligrosos
   const dangerousPatterns = ['$where', '$function', 'eval', 'constructor'];
   const queryStr = JSON.stringify(parsedQuery);
   if (dangerousPatterns.some(p => queryStr.includes(p))) {

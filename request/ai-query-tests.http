@@ -1,0 +1,237 @@
+### AI Query Engine - Test Requests
+
+# Variables
+@baseUrl = http://localhost:3020
+@apiUrl = {{baseUrl}}/api/v1
+
+
+### 1. SCHEMA - Obtener schema disponible
+GET {{apiUrl}}/ai-query/schema
+Content-Type: application/json
+### 🧠 Prueba del motor de IA
+POST http://localhost:3020/api/v1/ai-query
+Content-Type: application/json
+
+{
+  "query": "Muestrame el top 5 de empresas con mayor volatilidad y que tengan un P/E menor a 20",
+  "includeCharts": false
+}
+
+### 2. PREVIEW - Simular query sin ejecutar
+POST {{apiUrl}}/ai-query/preview
+Content-Type: application/json
+
+{
+  "query": "Dame las 10 empresas con volatilidad baja"
+}
+
+
+### 3. QUERY SIMPLE - Sin gráficas
+POST {{apiUrl}}/ai-query
+Content-Type: application/json
+
+{
+  "query": "Dame las 5 empresas del S&P500 con P/E ratio más bajo",
+  "dbServer": "mongodb",
+  "includeAlpaca": false,
+  "includeCharts": false,
+  "skipCache": false
+}
+
+
+### 4. QUERY CON ALPACA - Enriquecida con datos de Alpaca
+POST {{apiUrl}}/ai-query
+Content-Type: application/json
+
+{
+  "query": "Muestra las 5 empresas con mayor volatilidad y enriquece con precios",
+  "dbServer": "mongodb",
+  "includeAlpaca": true,
+  "includeCharts": false,
+  "generateNLSummary": false
+}
+
+
+
+### 5. QUERY CON CHARTS - Incluir gráficas
+POST {{apiUrl}}/ai-query
+Content-Type: application/json
+
+{
+  "query": "Gráficame las primeras 10 empresas con más plusvalía",
+  "dbServer": "mongodb",
+  "includeAlpaca": false,
+  "includeCharts": true,
+  "generateNLSummary": false
+}
+
+
+### 6. QUERY CON NL SUMMARY - Resumen en lenguaje natural
+POST {{apiUrl}}/ai-query
+Content-Type: application/json
+
+{
+  "query": "Dame empresas con volatilidad entre 0.1 y 0.3",
+  "dbServer": "mongodb",
+  "includeAlpaca": false,
+  "includeCharts": false,
+  "generateNLSummary": true
+}
+
+
+### 7. QUERY SKIP CACHE - Forzar ejecución sin caché
+POST {{apiUrl}}/ai-query
+Content-Type: application/json
+
+{
+  "query": "Dame las 10 empresas con volatilidad baja",
+  "dbServer": "mongodb",
+  "includeCharts": true,
+  "skipCache": true
+}
+
+
+### 8. QUERY SUPABASE - Usar Supabase en lugar de MongoDB
+POST {{apiUrl}}/ai-query
+Content-Type: application/json
+
+{
+  "query": "Dame todas las noticias positivas del último mes",
+  "dbServer": "supabase",
+  "includeAlpaca": false,
+  "includeCharts": false
+}
+
+
+### 9. COMPLEX QUERY - Búsqueda full-text
+POST {{apiUrl}}/ai-query
+Content-Type: application/json
+
+{
+  "query": "Busca noticias sobre IA en el mercado",
+  "dbServer": "mongodb",
+  "includeAlpaca": false,
+  "includeCharts": false
+}
+
+
+### 10. EXPORT CHART - Exportar Candlestick a PNG
+POST {{apiUrl}}/ai-query/export-chart
+Content-Type: application/json
+
+{
+  "chartData": {
+    "type": "candlestick",
+    "title": "AAPL - Candlestick Chart",
+    "data": {
+      "labels": ["2024-01-01", "2024-01-02", "2024-01-03"],
+      "datasets": [
+        {
+          "label": "AAPL",
+          "data": [
+            {
+              "x": "2024-01-01",
+              "o": 150.5,
+              "h": 152.3,
+              "l": 149.8,
+              "c": 151.5
+            },
+            {
+              "x": "2024-01-02",
+              "o": 151.5,
+              "h": 153.2,
+              "l": 150.9,
+              "c": 152.8
+            },
+            {
+              "x": "2024-01-03",
+              "o": 152.8,
+              "h": 154.1,
+              "l": 152.2,
+              "c": 153.5
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "chartType": "candlestick",
+  "width": 1200,
+  "height": 600
+}
+
+
+### 11. EXPORT BAR CHART - Exportar Bar Chart a PNG
+POST {{apiUrl}}/ai-query/export-chart
+Content-Type: application/json
+
+{
+  "chartData": {
+    "type": "bar",
+    "title": "Top 5 Empresas por Volatilidad",
+    "data": {
+      "labels": ["AAPL", "MSFT", "GOOGL", "NVDA", "TSLA"],
+      "datasets": [
+        {
+          "label": "Volatilidad",
+          "data": [0.35, 0.28, 0.32, 0.42, 0.55],
+          "backgroundColor": "#3B82F6",
+          "borderColor": "#1E40AF"
+        }
+      ]
+    }
+  },
+  "chartType": "bar",
+  "width": 1200,
+  "height": 600
+}
+
+
+### 12. DOWNLOAD CHART - Descargar PNG exportado
+# Nota: Cambiar el filename al que devuelve el endpoint anterior
+GET {{apiUrl}}/ai-query/chart-download/chart-1714756234567.png
+
+
+### 13. QUERY COMBINADA - Todos los features
+POST {{apiUrl}}/ai-query
+Content-Type: application/json
+
+{
+  "query": "Muestra gráficamente las 10 empresas con volatilidad baja, con precios actuales de Alpaca y un resumen analítico",
+  "dbServer": "mongodb",
+  "includeAlpaca": true,
+  "includeCharts": true,
+  "generateNLSummary": true,
+  "skipCache": false
+}
+
+### 14. CACHE TEST - Ejecutar la misma query dos veces
+# Primera ejecución (sin caché)
+POST {{apiUrl}}/ai-query
+Content-Type: application/json
+
+{
+  "query": "Test cache performance",
+  "dbServer": "mongodb",
+  "skipCache": false
+}
+
+###
+# Segunda ejecución (con caché) - Debería ser MÁS RÁPIDO
+POST {{apiUrl}}/ai-query
+Content-Type: application/json
+
+{
+  "query": "Test cache performance",
+  "dbServer": "mongodb",
+  "skipCache": false
+}
+
+### 15. ERROR TEST - Query con campo inválido
+POST {{apiUrl}}/ai-query
+Content-Type: application/json
+
+{
+  "query": "",
+  "dbServer": "invalid_db"
+}
